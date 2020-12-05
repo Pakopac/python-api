@@ -9,23 +9,28 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
 
-df = pd.read_csv("labels.csv") 
+def training_tweet():
+    df = pd.read_csv("labels.csv") 
 
-df = pd.read_csv("labels.csv", usecols=['class', 'tweet'])
-df['tweet'] = df['tweet'].apply(lambda tweet: re.sub('[^A-Za-z]+', ' ', tweet.lower()))
+    df = pd.read_csv("labels.csv", usecols=['class', 'tweet'])
+    df['tweet'] = df['tweet'].apply(lambda tweet: re.sub('[^A-Za-z]+', ' ', tweet.lower()))
 
-print(df.head())
+    clf = make_pipeline(
+        TfidfVectorizer(stop_words=get_stop_words('en')),
+        OneVsRestClassifier(SVC(kernel='linear', probability=True))
+    )
 
-clf = make_pipeline(
-    TfidfVectorizer(stop_words=get_stop_words('en')),
-    OneVsRestClassifier(SVC(kernel='linear', probability=True))
-)
+    clf.fit(X=df['tweet'], y=df['class'])
 
-clf.fit(X=df['tweet'], y=df['class'])
+    dump(clf, "tweet_algo.joblib") 
 
-print(clf)
+    return 'Done'
 
-dump(clf, "filename.joblib") 
-clf = load('filename.joblib')
-
-print(clf)
+def predict_tweet(text):
+    clf = load('tweet_algo.joblib')
+    if clf.predict([text]) == [0]:
+        return 'hate speech'
+    elif clf.predict([text]) == [1]:
+        return 'offensive language'
+    elif clf.predict([text]) == [2]:
+        return 'neither' 
